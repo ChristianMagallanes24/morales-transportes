@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="logo.png" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contador con Cálculo de Precio</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .fullscreen-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+        }
+
+        img {
+            width: 300px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .timer {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .price {
+            font-size: 1.5em;
+            color: #f30000;
+            margin-bottom: 20px;
+        }
+
+        .buttons button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            background-color: #ff0000;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .buttons button:hover {
+            background-color: #0056b3;
+        }
+
+        .buttons button:disabled {
+            background-color: #ff0000;
+            cursor: not-allowed;
+        }
+
+        /* Clase para estado activo */
+        .active-button {
+            background-color: #ff8800 !important;
+        }
+
+        @media (max-width: 600px) {
+            .timer {
+                font-size: 1.5em;
+            }
+            .price {
+                font-size: 1.2em;
+            }
+            .buttons button {
+                padding: 8px 16px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <img src="logo.png" alt="Logo">
+    <h1></h1>
+    <img src="maximizar.png" id="fullscreenBtn" class="fullscreen-button" alt="Pantalla Completa">
+    <div class="timer">00:00:00</div>
+    <div class="price">Total: $0.00</div>
+    <div class="buttons">
+        <button id="start" disabled>Iniciar</button>
+        <button id="stop" disabled>Detener</button>
+        <button id="restart" disabled>Reiniciar</button>
+        <button id="mudanza">Mudanza ($1.200/h)</button>
+        <button id="reparto">Reparto ($800/h)</button>
+    </div>
+
+    <script>
+        let timerDisplay = document.querySelector(".timer");
+        let priceDisplay = document.querySelector(".price");
+        let startButton = document.getElementById("start");
+        let stopButton = document.getElementById("stop");
+        let restartButton = document.getElementById("restart");
+        let mudanzaButton = document.getElementById("mudanza");
+        let repartoButton = document.getElementById("reparto");
+        let fullscreenBtn = document.getElementById("fullscreenBtn");
+
+        let timer = null;
+        let hours = 0, minutes = 0, seconds = 0;
+        let pricePerHour = null;
+        let totalAmount = 0;
+        let running = false;
+        let selectedButton = null; // Guardar el botón seleccionado (Mudanza o Reparto)
+
+        // Función para actualizar el estado activo de los botones
+        function setActiveButton(button) {
+            document.querySelectorAll('.buttons button').forEach(btn => {
+                btn.classList.remove('active-button');
+            });
+            button.classList.add('active-button');
+        }
+
+        // Función para actualizar el temporizador y el precio
+        function updateDisplay() {
+            let formattedTime =
+                `${hours.toString().padStart(2, '0')}:` +
+                `${minutes.toString().padStart(2, '0')}:` +
+                `${seconds.toString().padStart(2, '0')}`;
+            timerDisplay.textContent = formattedTime;
+
+            let totalHours = hours + minutes / 60 + seconds / 3600;
+            totalAmount = totalHours * pricePerHour;
+            priceDisplay.textContent = `Total: $${totalAmount.toFixed(2)}`;
+        }
+
+        // Función para iniciar el temporizador
+        function startTimer() {
+            if (pricePerHour === null) {
+                alert("Por favor, seleccione una tarifa de viaje (Mudanza o Reparto) antes de iniciar.");
+                return;
+            }
+
+            if (!running) {
+                running = true;
+                timer = setInterval(() => {
+                    seconds++;
+                    if (seconds === 60) {
+                        seconds = 0;
+                        minutes++;
+                    }
+                    if (minutes === 60) {
+                        minutes = 0;
+                        hours++;
+                    }
+                    updateDisplay();
+                }, 1000);
+            }
+            startButton.disabled = true;
+            stopButton.disabled = false;
+            restartButton.disabled = false;
+            setActiveButton(startButton); // Marcar "Iniciar" como activo
+            setActiveButton(selectedButton); // Mantener el botón de servicio activo
+        }
+
+        // Función para detener el temporizador
+        function stopTimer() {
+            clearInterval(timer);
+            running = false;
+            startButton.disabled = false;
+            stopButton.disabled = true;
+            restartButton.disabled = false;
+            setActiveButton(stopButton); // Marcar "Detener" como activo
+            setActiveButton(selectedButton); // Mantener el botón de servicio activo
+        }
+
+        // Función para reiniciar el temporizador
+        function restartTimer() {
+            clearInterval(timer);
+            running = false;
+            hours = 0;
+            minutes = 0;
+            seconds = 0;
+            totalAmount = 0;
+            updateDisplay();
+            startButton.disabled = false;
+            stopButton.disabled = true;
+            restartButton.disabled = true;
+            setActiveButton(restartButton); // Marcar "Reiniciar" como activo
+            if (selectedButton) {
+                setActiveButton(selectedButton); // Mantener el botón de servicio activo
+            }
+        }
+
+        // Función para seleccionar Mudanza
+        function setMudanzaRate() {
+            pricePerHour = 1200;
+            selectedButton = mudanzaButton; // Guardar que "Mudanza" está seleccionado
+            restartTimer(); // Reiniciar el temporizador
+            setActiveButton(mudanzaButton); // Marcar el botón de "Mudanza" como activo
+            startButton.disabled = false; // Habilitar "Iniciar"
+        }
+
+        // Función para seleccionar Reparto
+        function setRepartoRate() {
+            pricePerHour = 800;
+            selectedButton = repartoButton; // Guardar que "Reparto" está seleccionado
+            restartTimer(); // Reiniciar el temporizador
+            setActiveButton(repartoButton); // Marcar el botón de "Reparto" como activo
+            startButton.disabled = false; // Habilitar "Iniciar"
+        }
+
+        // Función para cambiar a pantalla completa
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+                fullscreenBtn.src = 'minimizar.png';
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                    fullscreenBtn.src = 'maximizar.png';
+                }
+            }
+        }
+
+        // Event Listeners
+        startButton.addEventListener("click", startTimer);
+        stopButton.addEventListener("click", stopTimer);
+        restartButton.addEventListener("click", restartTimer);
+        mudanzaButton.addEventListener("click", setMudanzaRate);
+        repartoButton.addEventListener("click", setRepartoRate);
+        fullscreenBtn.addEventListener("click", toggleFullscreen);
+    </script>
+</body>
+</html>
